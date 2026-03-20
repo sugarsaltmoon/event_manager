@@ -127,10 +127,26 @@
         </div>
     </div>
 
+    <!-- Add Photo Modal (Existing Event) -->
+    <div id="photo-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl">
+            <h2 class="text-xl font-bold mb-4 text-[#8b4513]">写真・動画を追加</h2>
+            <p id="p-target-title" class="text-sm text-slate-500 mb-4"></p>
+            <form id="photo-form" onsubmit="handleAddPhotos(event)" class="space-y-4">
+                <input type="hidden" id="p-id">
+                <input type="file" id="p-files" multiple accept="image/*,video/*" class="w-full p-4 border-2 border-dashed border-tan-200 rounded-xl text-sm bg-white" required>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="closePhotoModal()" class="flex-1 p-4 bg-slate-100 text-slate-600 rounded-xl font-bold">キャンセル</button>
+                    <button type="submit" class="flex-1 p-4 bg-blue-500 text-white rounded-xl font-bold">追加する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script>
         // --- 設定エリア ---
-        const API_URL = 'https://script.google.com/macros/s/AKfycby2nC7xqg26V3vC1VaVKLlp_Aa_vUdwDemVHb6O9H4_d3QrRRcQH1-ExyOdwW7fxC6Q7A/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbwjnqaLGMA8TwiiGxooe2GYEPScBmfLcoILoJvTWHd4yYNKobX1CdT-aKXx5XEBAU4Z8g/exec';
         
         const params = new URLSearchParams(window.location.search);
         const ROLE = (params.get('role') || 'guest').toLowerCase();
@@ -312,6 +328,16 @@
                                 </a>
                              ` : ''}
                         </div>
+                        ${ROLE === 'admin' ? `
+                        <div class="absolute top-4 right-4 flex gap-2">
+                            <button onclick="openAddPhotoModal('${e.ID}', '${e.タイトル}')" class="w-10 h-10 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center shadow-sm hover:bg-blue-100" title="写真を追加">
+                                📷
+                            </button>
+                            <button onclick="handleDelete('${e.ID}')" class="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center shadow-sm hover:bg-red-100" title="削除">
+                                🗑️
+                            </button>
+                        </div>
+                        ` : ''}
                     </div>
                 `;
             });
@@ -341,6 +367,66 @@
         function clearDateFilter() {
             selectedDate = null;
             renderTimeline();
+        }
+
+        // --- Photo Modal ---
+        function openAddPhotoModal(id, title) {
+            document.getElementById('p-id').value = id;
+            document.getElementById('p-target-title').innerText = `対象: ${title}`;
+            document.getElementById('photo-modal').classList.remove('hidden');
+        }
+
+        function closePhotoModal() {
+            document.getElementById('photo-modal').classList.add('hidden');
+            document.getElementById('photo-form').reset();
+        }
+
+        async function handleAddPhotos(e) {
+            e.preventDefault();
+            setWait(true);
+            
+            try {
+                const id = document.getElementById('p-id').value;
+                const fileInput = document.getElementById('p-files');
+                const filePromises = Array.from(fileInput.files).map(file => {
+                    return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                            resolve({
+                                name: file.name,
+                                type: file.type,
+                                base64: ev.target.result.split(',')[1]
+                            });
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                });
+                
+                const files = await Promise.all(filePromises);
+
+                const data = {
+                    action: 'addPhotos',
+                    id: id,
+                    files: files
+                };
+
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if(result.success) {
+                    closePhotoModal();
+                    alert('写真を追加しました！');
+                    loadData();
+                } else {
+                    alert('追加に失敗しました: ' + (result.error || '不明なエラー'));
+                }
+            } catch (err) {
+                console.error('Photo Add Error:', err);
+                alert('通信エラーが発生しました');
+            }
+            setWait(false);
         }
 
         // --- Form Interaction ---
