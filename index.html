@@ -658,14 +658,14 @@
 
             let msg = `【ファモリ】想い出の共有 ✨\n\nタイトル：${title}\n日付：${date}\n\nここに写真や動画を入れてね！📸\n\n`;
 
-            msg += `▼ アプリへのリンクはこちら（カレンダーが開きます）\n${appLink}\n\n`;
-
             if (shareUploadUrl) {
-                msg += `▼ 写真・動画の投稿はこちら\n${shareUploadUrl}\n\n`;
+                msg += `① 写真・動画の【投稿】はこちら\n${shareUploadUrl}\n\n`;
             }
             if (shareViewUrl) {
-                msg += `▼ みんなの投稿を見る\n${shareViewUrl}`;
+                msg += `② みんなの投稿の【確認】はこちら\n${shareViewUrl}\n\n`;
             }
+            
+            msg += `③ アプリ本体（全体のカレンダー）はこちら\n${appLink}`;
 
             const text = encodeURIComponent(msg);
             window.open(`https://line.me/R/msg/text/?${text}`, '_blank');
